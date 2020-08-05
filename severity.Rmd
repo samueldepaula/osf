@@ -1,0 +1,267 @@
+---
+title: "analysis_R_severity"
+author: "SamueldePaula"
+date: "8/4/2020"
+output: html_document
+---
+#Packs
+```{r}
+library(agricolae)
+library(gsheet)
+library(tidyverse)
+library(ExpDes.pt)
+```
+
+#Dataset
+```{r}
+
+
+url<-"https://docs.google.com/spreadsheets/d/1GTU52RQdVxx9lPwU2Re-kOjg7ZhWQyXSYmISrW8M-nI/edit?usp=sharing"
+
+data<-gsheet2tbl(url)
+```
+
+#Showing the dataframe
+```{r}
+View(data)
+```
+
+```{r}
+glimpse(data)
+```
+
+```{r}
+data_2<-data %>% gather (3:5, key = "treatments", value = "Severity")
+```
+
+```{r}
+
+data_3<-data_2 %>% 
+  select(c(time, treatments, Severity))
+data_3
+```
+
+```{r}
+data_4<-data_2%>% 
+ mutate(treatments = case_when(treatments == "control" ~ "CONTROL",
+                               treatments == "asm" ~ "ASM",
+                               treatments == "fungicides" ~ "FUNGICIDES",
+treatments!="control" | treatments!="asm"| treatments!="fungicides" ~ treatments))
+
+```
+
+```{r}
+
+data_4 ["sev_2"] <-data_4$Severity*1
+
+data_4
+
+```
+
+```{r fig.height=4, fig.width=7}
+data_4 %>% 
+  ggplot(aes(sev_2))+
+  geom_histogram(fill="gray", color="white")
+
+```
+
+```{r fig.height=6, fig.width=7}
+data_4 %>% 
+  ggplot(aes(sev_2))+
+  geom_histogram(fill="gray", color="white")+
+  facet_wrap(~treatments)+
+  theme_light()
+```
+
+```{r fig.height=4, fig.width=7}
+
+data_4%>% 
+group_by(treatments)%>%
+ggplot(aes (time, sev_2, color=treatments, shape=treatments))+ geom_point()
+
+```
+
+```{r fig.height=4, fig.width=7}
+data_4%>% 
+group_by(treatments,time)%>%
+summarise(m_sev=mean(sev_2)) %>% 
+ggplot(aes(time, m_sev, color=treatments, shape=treatments)) +
+  geom_point() + geom_line()
+```
+
+```{r fig.height=4, fig.width=7}
+data_4%>% 
+group_by(treatments,time)%>%
+summarise(m_sev=mean(sev_2),
+          n=length(sev_2),
+          sd_sev=sd(sev_2),
+          se_sev=sd_sev/sqrt(n), 
+          ci_up=m_sev + qt(p=0.975,df = n-1)*se_sev,
+          ci_lw=m_sev + qt(p=0.025,df = n-1)*se_sev) %>% 
+ggplot(aes(time, m_sev, color=treatments, shape=treatments))+
+  geom_point()+
+  geom_line()+
+  geom_errorbar(aes(ymin=ci_lw, ymax=ci_up),
+                width=0.2)
+```
+
+```{r fig.height=4, fig.width=7}
+data_4%>% 
+group_by(treatments,time)%>%
+summarise(m_sev=mean(sev_2),
+          n=length(sev_2),
+          sd_sev=sd(sev_2),
+          se_sev=sd_sev/sqrt(n), 
+          ci_up=m_sev + qt(p=0.975,df = n-1)*se_sev,
+          ci_lw=m_sev + qt(p=0.025,df = n-1)*se_sev) %>% 
+ggplot(aes(time, m_sev, color=treatments, fill=treatments))+
+  geom_ribbon(aes(ymin=ci_lw, ymax=ci_up),alpha=0.3)+
+  geom_line()+
+   geom_point()
+```
+
+```{r fig.height=4, fig.width=7}
+data_4%>% 
+group_by(treatments,time)%>%
+summarise(m_sev=mean(sev_2),
+          n=length(sev_2),
+          sd_sev=sd(sev_2),
+          se_sev=sd_sev/sqrt(n), 
+          ci_up=m_sev + qt(p=0.975,df = n-1)*se_sev,
+          ci_lw=m_sev + qt(p=0.025,df = n-1)*se_sev) %>% 
+ggplot(aes(time, m_sev, color=treatments, fill=treatments))+
+  geom_ribbon(aes(ymin=ci_lw, ymax=ci_up),alpha=0.3)+
+  geom_line()+
+   geom_point()+
+  theme_bw()+ theme(axis.text.x = element_text(),
+  legend.text = element_text(size = 8))+
+  labs(x= "Treatment",
+       y= "Severity (%)",
+       color= "treatments", shape= "treatments")
+```
+
+```{r fig.height=4, fig.width=7}
+library(viridis)
+data_4%>% 
+group_by(treatments,time)%>%
+summarise(m_sev=mean(sev_2),
+          n=length(sev_2),
+          sd_sev=sd(sev_2),
+          se_sev=sd_sev/sqrt(n), 
+          ci_up=m_sev + qt(p=0.975,df = n-1)*se_sev,
+          ci_lw=m_sev + qt(p=0.025,df = n-1)*se_sev) %>% 
+ggplot(aes(time, m_sev, color=treatments, fill=treatments))+
+  geom_ribbon(aes(ymin=ci_lw, ymax=ci_up),alpha=0.3)+
+  geom_line()+
+   geom_point()+
+  theme_bw()+ theme(axis.text.x = element_text(),
+  legend.text = element_text(size = 8))+
+  labs(x= "Treatment",
+       y= "Severity (%)",
+       color= "treatments", shape= "treatments")+
+   scale_fill_viridis(discrete=TRUE)+
+  scale_color_viridis(discrete=TRUE)
+```
+
+```{r fig.height=4, fig.width=7}
+
+data_4%>% 
+group_by(treatments,time)%>%
+summarise(m_sev=mean(sev_2),
+          n=length(sev_2),
+          sd_sev=sd(sev_2),
+          se_sev=sd_sev/sqrt(n), 
+          ci_up=m_sev + qt(p=0.975,df = n-1)*se_sev,
+          ci_lw=m_sev + qt(p=0.025,df = n-1)*se_sev) %>% 
+ggplot(aes(time, m_sev, color=treatments, fill=treatments))+
+  geom_ribbon(aes(ymin=ci_lw, ymax=ci_up),alpha=0.3)+
+  geom_line()+
+   geom_point()+
+  theme_bw()+ theme(axis.text.x = element_text(),
+  legend.text = element_text(size = 8))+
+  labs(x= "Assesment",
+       y= "Severity (%)",
+       color= "treatments", shape= "treatments")+
+  scale_fill_viridis(discrete=TRUE)+
+  scale_color_viridis(discrete=TRUE)+
+  facet_wrap(~treatments)
+```
+
+#Assesment 3
+
+```{r fig.height=4, fig.width=7}
+data_4 %>% 
+  group_by(treatments,time) %>% 
+  filter(time==3) %>% 
+  ggplot(aes(treatments,sev_2))+ 
+  geom_boxplot(outlier.color = NA)+ 
+  geom_jitter(width = 0.1, shape=1)
+```
+```{r}
+data_8<-data_4 %>% 
+  group_by(treatments) %>% 
+  filter(time==3)%>% 
+  select(-c(time, Severity))
+```
+
+```{r}
+attach(data_8)
+dic(treatments, sev_2, quali = TRUE, mcomp = "tukey", nl=FALSE,
+hvar='bartlett', sigT = 0.05, sigF = 0.05)
+```
+
+#Assesment 2
+```{r fig.height=4, fig.width=7}
+data_4 %>% 
+  group_by(treatments,time) %>% 
+  filter(time==2) %>% 
+  ggplot(aes(treatments,sev_2))+ 
+  geom_boxplot(outlier.color = NA)+ 
+  geom_jitter(width = 0.1, shape=1)
+```
+
+```{r}
+data_9<-data_4 %>% 
+  group_by(treatments) %>% 
+  filter(time==2)%>% 
+  select(-c(time, Severity))
+```
+
+```{r}
+attach(data_9)
+dic(treatments, sev_2, quali = TRUE, mcomp = "tukey", nl=FALSE,
+hvar='bartlett', sigT = 0.05, sigF = 0.05)
+```
+
+#Assesment 1
+```{r fig.height=4, fig.width=7}
+data_4 %>% 
+  group_by(treatments,time) %>% 
+  filter(time==1) %>% 
+  ggplot(aes(treatments,sev_2))+ 
+  geom_boxplot(outlier.color = NA)+ 
+  geom_jitter(width = 0.1, shape=1)
+```
+
+```{r}
+data_10<-data_4 %>% 
+  group_by(treatments) %>% 
+  filter(time==1)%>% 
+  select(-c(time, Severity))
+```
+
+```{r}
+attach(data_10)
+dic(treatments, sev_2, quali = TRUE, mcomp = "tukey", nl=FALSE,
+hvar='bartlett', sigT = 0.05, sigF = 0.05)
+```
+
+
+
+
+
+
+
+
+
+
